@@ -761,7 +761,7 @@ function ProjectCard({ p }) {
                                         ref={(el) => {
                                             if (el) thumbBtnRefs.current[i] = el;
                                         }}
-                                        key={`${it.src}-${i}`}
+                                        key={`${active.src}-${i}`}
                                         type="button"
                                         onClick={() => setIdx(i)}
                                         className={cn(
@@ -772,7 +772,7 @@ function ProjectCard({ p }) {
                                     >
                                         {ok ? (
                                             <img
-                                                src={it.src}
+                                                src={active.src}
                                                 alt=""
                                                 className="h-full w-full object-cover opacity-90"
                                                 loading="lazy"
