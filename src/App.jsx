@@ -128,21 +128,52 @@ function clamp(v, a, b) {
  * - Public assets referenced with "/..." do NOT auto-prefix on GH Pages
  * So we build paths using BASE_URL.
  */
-const BASE_URL =
-    typeof import.meta !== "undefined" && import.meta.env && import.meta.env.BASE_URL
-        ? import.meta.env.BASE_URL
-        : "/";
+// ---- BASE PATH (GitHub Pages / Vite / CRA safe) ----
+function getBaseUrl() {
+    // 1) Vite
+    try {
+        if (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.BASE_URL) {
+            return import.meta.env.BASE_URL;
+        }
+    } catch (e) { }
+
+    // 2) CRA (create-react-app)
+    try {
+        if (typeof process !== "undefined" && process.env && process.env.PUBLIC_URL) {
+            return process.env.PUBLIC_URL;
+        }
+    } catch (e) { }
+
+    // 3) Runtime fallback for GitHub Pages: /<repo>/
+    try {
+        if (typeof window !== "undefined") {
+            const { hostname, pathname } = window.location;
+            if (hostname.endsWith("github.io")) {
+                const seg = pathname.split("/").filter(Boolean)[0]; // "omid-portfolio"
+                return seg ? `/${seg}/` : "/";
+            }
+        }
+    } catch (e) { }
+
+    return "/";
+}
+
+const BASE_URL = getBaseUrl();
 
 function withBase(p) {
     if (!p || typeof p !== "string") return p;
     if (p.startsWith("http") || p.startsWith("mailto:")) return p;
 
     const base = BASE_URL.endsWith("/") ? BASE_URL : `${BASE_URL}/`;
+
+    // если уже с base — не дублируем
+    if (base !== "/" && p.startsWith(base)) return p;
+
+    // убираем ведущие слэши
     const clean = p.replace(/^\/+/, "");
-    return `${base}${clean}`;
+    return base === "/" ? `/${clean}` : `${base}${clean}`;
 }
 
-const SCROLL_OFFSET = 84; // fallback if we can't measure the top nav
 
 function getScrollOffset() {
     try {
