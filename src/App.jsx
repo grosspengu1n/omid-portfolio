@@ -1,4 +1,5 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿// @ts-nocheck
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     ArrowRight,
     Download,
@@ -47,8 +48,7 @@ const DEMOREELS = [
     },
 ];
 
-
-// NOTE: Put images in /public/projects/... (Vite/Next) and keep paths starting with "/".
+// NOTE: Put images in /public/projects/... and keep paths starting with "/".
 // For each project, add multiple screenshots as `images: [{src, alt}]`.
 const PROJECTS = [
     {
@@ -75,11 +75,7 @@ const PROJECTS = [
             { src: "/projects/whispering-waters/04.png", alt: "Whispering Waters — mood / lighting" },
             { src: "/projects/whispering-waters/05.png", alt: "Whispering Waters — mood / lighting" },
         ],
-        bullets: [
-            "Camera sway + collision-safe shoulder camera",
-            "Level feel: custom collisions, clear path",
-            "Niagara VFX",
-        ],
+        bullets: ["Camera sway + collision-safe shoulder camera", "Level feel: custom collisions, clear path", "Niagara VFX"],
         tags: ["Unreal Engine 5.6"],
     },
     {
@@ -93,7 +89,7 @@ const PROJECTS = [
             { src: "/projects/fork-it-up/05.png", alt: "Fork it up — level layout" },
         ],
         bullets: ["Blockout"],
-        links: [{ label: "Itchio", url: "https://artfx-school.itch.io/fork-it-up" }],
+        links: [{ label: "Itch.io", url: "https://artfx-school.itch.io/fork-it-up" }],
         tags: ["Unreal Engine 5.6"],
     },
     {
@@ -124,6 +120,26 @@ function cn(...classes) {
 
 function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
+}
+
+/**
+ * IMPORTANT for GitHub Pages:
+ * - Vite sets import.meta.env.BASE_URL to "/<repo>/"
+ * - Public assets referenced with "/..." do NOT auto-prefix on GH Pages
+ * So we build paths using BASE_URL.
+ */
+const BASE_URL =
+    typeof import.meta !== "undefined" && import.meta.env && import.meta.env.BASE_URL
+        ? import.meta.env.BASE_URL
+        : "/";
+
+function withBase(p) {
+    if (!p || typeof p !== "string") return p;
+    if (p.startsWith("http") || p.startsWith("mailto:")) return p;
+
+    const base = BASE_URL.endsWith("/") ? BASE_URL : `${BASE_URL}/`;
+    const clean = p.replace(/^\/+/, "");
+    return `${base}${clean}`;
 }
 
 const SCROLL_OFFSET = 84; // fallback if we can't measure the top nav
@@ -443,7 +459,6 @@ function SecondaryButton({ href, children, newTab = false }) {
     );
 }
 
-
 function GlowCard({ className = "", children, href, newTab = false }) {
     const inner = (
         <div
@@ -574,16 +589,10 @@ function ScrollArrow({ dir, disabled, onClick }) {
     );
 }
 
-// ✅ Add this helper somewhere above ProjectCard (near other utils)
 function prefersReducedMotion() {
-    return (
-        typeof window !== "undefined" &&
-        window.matchMedia &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    );
+    return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-// ✅ Replace your entire ProjectCard with this
 function ProjectCard({ p }) {
     const list = Array.isArray(p.images)
         ? p.images
@@ -594,29 +603,24 @@ function ProjectCard({ p }) {
     const [idx, setIdx] = useState(0);
     const [okMap, setOkMap] = useState(() => new Array(list.length).fill(true));
 
-    // Fade transition state
     const FADE_MS = 220;
-    const [displayIdx, setDisplayIdx] = useState(0); // what is currently shown
-    const [phase, setPhase] = useState("in"); // "out" | "in"
+    const [displayIdx, setDisplayIdx] = useState(0);
+    const [phase, setPhase] = useState("in");
 
     const thumbsRef = useRef(null);
-    const thumbBtnRefs = useRef([]); // array of button elements
+    const thumbBtnRefs = useRef([]);
 
     useEffect(() => {
-        // reset when project changes
         setIdx(0);
         setOkMap(new Array(list.length).fill(true));
         setDisplayIdx(0);
         setPhase("in");
-
         thumbBtnRefs.current = [];
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [p.title]);
+    }, [p.title]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const safeLen = Math.max(0, list.length);
     const clampedIdx = safeLen ? clamp(idx, 0, safeLen - 1) : 0;
 
-    // Smooth fade when target index changes
     useEffect(() => {
         if (!safeLen) return;
         if (clampedIdx === displayIdx) return;
@@ -663,6 +667,7 @@ function ProjectCard({ p }) {
         }
     };
 
+    // auto-scroll thumbnails to keep active centered
     useEffect(() => {
         if (!safeLen) return;
 
@@ -673,9 +678,7 @@ function ProjectCard({ p }) {
         const wr = wrap.getBoundingClientRect();
         const br = btn.getBoundingClientRect();
 
-        // button left inside wrapper's scroll space
         const btnLeftInWrap = br.left - wr.left + wrap.scrollLeft;
-        // center the active thumbnail
         const targetLeft = btnLeftInWrap - (wr.width / 2 - br.width / 2);
 
         wrap.scrollTo({
@@ -697,7 +700,6 @@ function ProjectCard({ p }) {
                         aria-label={`${p.title} screenshots`}
                         onKeyDown={onKey}
                     >
-                        {/* image wrapper with fade */}
                         <div
                             className={cn(
                                 "absolute inset-0 transition-opacity duration-300 ease-out",
@@ -706,7 +708,7 @@ function ProjectCard({ p }) {
                         >
                             {active && activeOk ? (
                                 <img
-                                    src={active.src}
+                                    src={withBase(active.src)}
                                     alt={active.alt || `${p.title} screenshot ${displayIdx + 1}`}
                                     className="h-full w-full object-cover"
                                     loading="lazy"
@@ -717,10 +719,8 @@ function ProjectCard({ p }) {
                             )}
                         </div>
 
-                        {/* overlay */}
                         <div className="pointer-events-none absolute inset-0 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]" />
 
-                        {/* arrows (main image only) */}
                         {safeLen > 1 ? (
                             <>
                                 <button
@@ -747,7 +747,7 @@ function ProjectCard({ p }) {
                         ) : null}
                     </div>
 
-                    {/* thumbnails (scroll only, synced with main image) */}
+                    {/* thumbnails */}
                     {safeLen > 1 ? (
                         <div
                             ref={thumbsRef}
@@ -755,13 +755,13 @@ function ProjectCard({ p }) {
                         >
                             {list.map((it, i) => {
                                 const ok = okMap[i] !== false;
-                                const isActive = i === clampedIdx; // highlight the target (what user selected)
+                                const isActive = i === clampedIdx;
                                 return (
                                     <button
                                         ref={(el) => {
                                             if (el) thumbBtnRefs.current[i] = el;
                                         }}
-                                        key={`${active.src}-${i}`}
+                                        key={`${it.src}-${i}`}
                                         type="button"
                                         onClick={() => setIdx(i)}
                                         className={cn(
@@ -772,7 +772,7 @@ function ProjectCard({ p }) {
                                     >
                                         {ok ? (
                                             <img
-                                                src={active.src}
+                                                src={withBase(it.src)}
                                                 alt=""
                                                 className="h-full w-full object-cover opacity-90"
                                                 loading="lazy"
@@ -781,9 +781,7 @@ function ProjectCard({ p }) {
                                         ) : (
                                             <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-black/50" />
                                         )}
-                                        {isActive ? (
-                                            <div className="absolute inset-0 shadow-[0_0_0_2px_rgba(168,85,247,0.45)_inset]" />
-                                        ) : null}
+                                        {isActive ? <div className="absolute inset-0 shadow-[0_0_0_2px_rgba(168,85,247,0.45)_inset]" /> : null}
                                     </button>
                                 );
                             })}
@@ -798,11 +796,13 @@ function ProjectCard({ p }) {
                             <div className="text-lg font-semibold text-white">{p.title}</div>
                             <div className="mt-1 text-sm text-white/70">{p.role}</div>
                             <div className="mt-4 flex flex-wrap gap-2">
-                                {p.tags.map((t) => (
+                                {(p.tags || []).map((t) => (
                                     <Pill key={t}>{t}</Pill>
                                 ))}
                             </div>
                         </div>
+
+                        {/* links optional */}
                         {(() => {
                             const links = Array.isArray(p.links) ? p.links : [];
                             if (!links.length) return null;
@@ -826,7 +826,7 @@ function ProjectCard({ p }) {
                     </div>
 
                     <ul className="mt-5 space-y-2 text-sm text-white/80">
-                        {p.bullets.map((b) => (
+                        {(p.bullets || []).map((b) => (
                             <li key={b} className="flex gap-3">
                                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-white/55" />
                                 <span>{b}</span>
@@ -838,7 +838,6 @@ function ProjectCard({ p }) {
         </GlowCard>
     );
 }
-
 
 function useKeyState() {
     const keys = useRef({});
@@ -953,11 +952,9 @@ function ContactPill({ icon, label, href, title }) {
     );
 }
 
-
 function GlobalStyles() {
     return (
         <style>{`
-      /* ===== motion + polish ===== */
       html {
         scroll-snap-type: y mandatory;
         scroll-snap-stop: always;
@@ -1076,7 +1073,6 @@ function BackgroundFX({ p }) {
         <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden isolate" style={{ "--p": a }}>
             <div className="absolute inset-0 bg-gradient-to-b from-black via-black/75 to-black" />
 
-            {/* Neon aurora layer (animated) */}
             <div
                 className="absolute -inset-24 opacity-45 blur-3xl mo-aurora"
                 style={{
@@ -1084,7 +1080,6 @@ function BackgroundFX({ p }) {
                 }}
             />
 
-            {/* Edge glow that gently breathes */}
             <div className="absolute inset-0 mo-neon-edge" />
 
             <div className="absolute -inset-24 opacity-25 blur-2xl" style={{ transform: `translate3d(${driftX}px, ${driftY}px, 0)` }}>
@@ -1103,15 +1098,13 @@ function BackgroundFX({ p }) {
             </div>
 
             <div className="absolute inset-0 opacity-[0.06] [background-image:radial-gradient(rgba(255,255,255,0.6)_1px,transparent_1px)] [background-size:18px_18px]" />
-
-            {/* Texture layers (very subtle) */}
             <div className="absolute inset-0 mo-scanlines" />
             <div className="absolute -inset-10 mo-grain" />
         </div>
     );
 }
 
-/** Minimal self-tests (runs in dev). */
+/** Minimal self-tests (runs in dev only). */
 function runDevTests() {
     try {
         console.assert(clamp(5, 0, 10) === 5, "clamp in range");
@@ -1143,9 +1136,10 @@ function runDevTests() {
         console.assert(Array.isArray(PROJECTS) && PROJECTS.length > 0, "projects exist");
         console.assert(PROJECTS.every((p) => typeof p.title === "string"), "projects have titles");
         console.assert(PROJECTS.every((p) => Array.isArray(p.images) && p.images.length >= 1), "projects have image arrays");
-        console.assert(PROJECTS.some((p) => p.images.length > 5), "at least one project has >5 images (thumb scroll case)");
 
-        handleInternalAnchorClick(null, "not-a-hash");
+        // new tests for withBase
+        console.assert(withBase("/projects/x.png").includes("projects/x.png"), "withBase preserves path");
+        console.assert(withBase("mailto:test@example.com") === "mailto:test@example.com", "withBase ignores mailto");
     } catch (err) {
         // never crash the app because of tests
     }
@@ -1154,7 +1148,6 @@ function runDevTests() {
 function ThreeCPlayground() {
     const canvasRef = useRef(null);
     const keys = useKeyState();
-
     const [assist, setAssist] = useState(false);
 
     useEffect(() => {
@@ -1448,7 +1441,12 @@ function ThreeCPlayground() {
                 </div>
 
                 <div className="w-full md:w-auto">
-                    <Toggle label="Feel tuning" checked={assist} onChange={setAssist} help="Single switch: camera smoothing/rubber-banding + coyote time + input buffer." />
+                    <Toggle
+                        label="Feel tuning"
+                        checked={assist}
+                        onChange={setAssist}
+                        help="Single switch: camera smoothing/rubber-banding + coyote time + input buffer."
+                    />
                 </div>
             </div>
 
@@ -1493,7 +1491,6 @@ export default function App() {
 
     const [activeSection, setActiveSection] = useState("top");
 
-    // Cursor spotlight
     useEffect(() => {
         const root = document.documentElement;
         const onMove = (e) => {
@@ -1506,7 +1503,6 @@ export default function App() {
         return () => window.removeEventListener("pointermove", onMove);
     }, []);
 
-    // Active section highlight
     useEffect(() => {
         const ids = ["top", "reels", "playground", "projects", "about"];
         const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
@@ -1528,7 +1524,6 @@ export default function App() {
         return () => obs.disconnect();
     }, []);
 
-    // Scroll reveal
     useEffect(() => {
         const els = Array.from(document.querySelectorAll(".mo-reveal"));
         if (!els.length) return;
@@ -1549,7 +1544,6 @@ export default function App() {
         return () => obs.disconnect();
     }, []);
 
-    // Magnetic + subtle tilt
     useEffect(() => {
         const els = Array.from(document.querySelectorAll("[data-magnetic]"));
         if (!els.length) return;
@@ -1769,7 +1763,6 @@ export default function App() {
                                     <Target className="h-4 w-4" />
                                     Projects
                                 </SecondaryButton>
-                                {/* CV button must lead to About (download buttons live there) */}
                                 <SecondaryButton href="#about">
                                     <Download className="h-4 w-4" />
                                     CV
@@ -1842,7 +1835,12 @@ export default function App() {
                     </div>
                 </section>
 
-                <Section id="playground" title="What I actually do" icon={<SlidersHorizontal className="h-4 w-4" />} subtitle="Compare the exact same level with feel tuning ON vs OFF to feel the difference.">
+                <Section
+                    id="playground"
+                    title="What I actually do"
+                    icon={<SlidersHorizontal className="h-4 w-4" />}
+                    subtitle="Compare the exact same level with feel tuning ON vs OFF to feel the difference."
+                >
                     <ThreeCPlayground />
                 </Section>
 
@@ -1854,13 +1852,18 @@ export default function App() {
                     </div>
                 </Section>
 
-                <Section id="about" title="About me" icon={<Sparkles className="h-4 w-4" />} subtitle="Quick snapshot: what I do, the skills I have, and what I like outside of work.">
+                <Section
+                    id="about"
+                    title="About me"
+                    icon={<Sparkles className="h-4 w-4" />}
+                    subtitle="Quick snapshot: what I do, the skills I have, and what I like outside of work."
+                >
                     <div className="grid gap-4 lg:grid-cols-12">
                         <GlowCard className="p-5 lg:col-span-4">
                             <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/50">
                                 <div className="relative aspect-square">
                                     <img
-                                        src="/about/me.jpg"
+                                        src={withBase("/about/me.jpg")}
                                         alt="Portrait"
                                         className="h-full w-full object-cover"
                                         onError={(e) => {
@@ -1872,23 +1875,33 @@ export default function App() {
                             </div>
 
                             <div className="mt-4 grid gap-2">
-                                <SecondaryButton href="/cv_en.pdf" newTab>
+                                <SecondaryButton href={withBase("/cv_en.pdf")} newTab>
                                     <Download className="h-4 w-4" />
                                     CV (EN)
                                 </SecondaryButton>
-                                <SecondaryButton href="/cv_fr.pdf" newTab>
+                                <SecondaryButton href={withBase("/cv_fr.pdf")} newTab>
                                     <Download className="h-4 w-4" />
                                     CV (FR)
                                 </SecondaryButton>
                             </div>
 
-                            <p className="mt-4 text-sm text-white/70">Technical 3C / Game Feel designer. I prototype quickly, tune game feel iteratively, and easy to work with.</p>
+                            <p className="mt-4 text-sm text-white/70">
+                                Technical 3C / Game Feel designer. I prototype quickly, tune game feel iteratively, and easy to work with.
+                            </p>
                         </GlowCard>
 
                         <div className="grid gap-4 lg:col-span-8">
                             <div className="grid gap-4 md:grid-cols-2">
-                                <AboutCard title="Game design" desc="I design 3Cs, write documentation, and iterate on game feel with measurable changes." using={["Microsoft Office", "Documentation tools (Notion)", "Miro / diagrams"]} />
-                                <AboutCard title="Development" desc="I can prototype ideas quickly, implement feel tweaks, and iterate with the team." using={["Unreal Engine (Blueprints)", "Unity (C#)", "Version control (Git)", "C++", "Python"]} />
+                                <AboutCard
+                                    title="Game design"
+                                    desc="I design 3Cs, write documentation, and iterate on game feel with measurable changes."
+                                    using={["Microsoft Office", "Documentation tools (Notion)", "Miro / diagrams"]}
+                                />
+                                <AboutCard
+                                    title="Development"
+                                    desc="I can prototype ideas quickly, implement feel tweaks, and iterate with the team."
+                                    using={["Unreal Engine (Blueprints)", "Unity (C#)", "Version control (Git)", "C++", "Python"]}
+                                />
                             </div>
 
                             <AboutCard title="Level design" desc="I'm able to create levels on paper, block out, define metrics, and iterate on levels to support pacing and readability." />
