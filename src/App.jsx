@@ -1476,7 +1476,7 @@ function ThreeCPlayground() {
                         label="Feel tuning"
                         checked={assist}
                         onChange={setAssist}
-                        help="Single switch: camera smoothing/rubber-banding + coyote time + input buffer."
+                        help="Adds camera smoothing/rubber-banding, coyote time, input buffer."
                     />
                 </div>
             </div>
