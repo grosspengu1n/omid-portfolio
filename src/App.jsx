@@ -1562,24 +1562,49 @@ export default function App() {
     }, []);
 
     useEffect(() => {
+        if (typeof window === "undefined") return;
+
         const ids = ["top", "reels", "playground", "projects", "about"];
-        const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
-        if (!els.length) return;
 
-        const obs = new IntersectionObserver(
-            (entries) => {
-                let best = null;
-                for (const e of entries) {
-                    if (!e.isIntersecting) continue;
-                    if (!best || e.intersectionRatio > best.intersectionRatio) best = e;
+        let raf = 0;
+        const update = () => {
+            raf = 0;
+
+            const offset = getScrollOffset(); 
+            let bestId = "top";
+            let bestDist = Infinity;
+
+            for (const id of ids) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+
+                const r = el.getBoundingClientRect();
+
+                const d = Math.abs(r.top - offset);
+
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestId = id;
                 }
-                if (best && best.target && best.target.id) setActiveSection(best.target.id);
-            },
-            { threshold: [0.55, 0.65, 0.75] }
-        );
+            }
 
-        els.forEach((el) => obs.observe(el));
-        return () => obs.disconnect();
+            setActiveSection(bestId);
+        };
+
+        const onScroll = () => {
+            if (raf) return;
+            raf = requestAnimationFrame(update);
+        };
+
+        update();
+        window.addEventListener("scroll", onScroll, { passive: true });
+        window.addEventListener("resize", onScroll);
+
+        return () => {
+            if (raf) cancelAnimationFrame(raf);
+            window.removeEventListener("scroll", onScroll);
+            window.removeEventListener("resize", onScroll);
+        };
     }, []);
 
     useEffect(() => {
