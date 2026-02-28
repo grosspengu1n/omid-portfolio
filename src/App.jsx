@@ -1567,28 +1567,27 @@ export default function App() {
         const ids = ["top", "reels", "playground", "projects", "about"];
 
         let raf = 0;
+
         const update = () => {
             raf = 0;
 
-            const offset = getScrollOffset(); 
-            let bestId = "top";
-            let bestDist = Infinity;
+            const offset = getScrollOffset();
+            let current = "top";
+            let bestTop = -Infinity;
 
             for (const id of ids) {
                 const el = document.getElementById(id);
-                if (!el) continue;
+                if (!el) continue; 
 
-                const r = el.getBoundingClientRect();
+                const top = el.getBoundingClientRect().top;
 
-                const d = Math.abs(r.top - offset);
-
-                if (d < bestDist) {
-                    bestDist = d;
-                    bestId = id;
+                if (top <= offset + 1 && top > bestTop) {
+                    bestTop = top;
+                    current = id;
                 }
             }
 
-            setActiveSection(bestId);
+            setActiveSection(current);
         };
 
         const onScroll = () => {
