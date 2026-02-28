@@ -987,9 +987,13 @@ function GlobalStyles() {
     return (
         <style>{`
       html {
-        scroll-snap-type: y mandatory;
-        scroll-snap-stop: always;
+        scroll-snap-type: none;
         scroll-padding-top: 96px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-snap-type: none; }
+        .mo-reveal { opacity: 1 !important; transform: none !important; filter: none !important; transition: none !important; }
       }
 
       @media (prefers-reduced-motion: reduce) {
