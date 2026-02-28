@@ -21,6 +21,9 @@ import {
  * Keep as JSX (no TS annotations).
  */
 
+// Fallback offset for anchor scroll when nav height can't be read.
+const SCROLL_OFFSET = 96;
+
 const DEMOREELS = [
     {
         year: 2027,
@@ -173,7 +176,6 @@ function withBase(p) {
     const clean = p.replace(/^\/+/, "");
     return base === "/" ? `/${clean}` : `${base}${clean}`;
 }
-
 
 function getScrollOffset() {
     try {
@@ -352,7 +354,7 @@ function Tag({ children }) {
 
 function Section({ id, title, icon, subtitle, children }) {
     return (
-        <section id={id} className="mx-auto max-w-6xl scroll-mt-24 snap-start [scroll-snap-stop:always] px-4 py-16">
+        <section id={id} className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16">
             <div className="mb-7">
                 <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-white/50">
                     {icon}
@@ -987,13 +989,8 @@ function GlobalStyles() {
     return (
         <style>{`
       html {
-        scroll-snap-type: none;
+        scroll-snap-type: none; /* <-- отключили автодоводку секций */
         scroll-padding-top: 96px;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        html { scroll-snap-type: none; }
-        .mo-reveal { opacity: 1 !important; transform: none !important; filter: none !important; transition: none !important; }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -1178,6 +1175,29 @@ function runDevTests() {
     } catch (err) {
         // never crash the app because of tests
     }
+}
+
+/** Hook: detect mobile to hide the "What I actually do" section */
+function useMediaQuery(query) {
+    const [matches, setMatches] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || !window.matchMedia) return;
+
+        const m = window.matchMedia(query);
+        const onChange = () => setMatches(!!m.matches);
+
+        onChange();
+        if (m.addEventListener) m.addEventListener("change", onChange);
+        else m.addListener(onChange);
+
+        return () => {
+            if (m.removeEventListener) m.removeEventListener("change", onChange);
+            else m.removeListener(onChange);
+        };
+    }, [query]);
+
+    return matches;
 }
 
 function ThreeCPlayground() {
@@ -1496,6 +1516,9 @@ export default function App() {
     const year = useMemo(() => new Date().getFullYear(), []);
     const reelsSorted = useMemo(() => DEMOREELS.slice().sort((a, b) => b.year - a.year), []);
 
+    // Mobile: hide the "What I actually do" section (below md)
+    const isMobile = useMediaQuery("(max-width: 767px)");
+
     const [scrollP, setScrollP] = useState(0);
     useEffect(() => {
         const scroller = getRootScroller();
@@ -1761,7 +1784,7 @@ export default function App() {
             <div className="relative z-10">
                 <TopNav active={activeSection} progress={scrollP} />
 
-                <section id="top" className="relative flex h-[100svh] flex-col justify-center overflow-hidden snap-start [scroll-snap-stop:always] pt-28">
+                <section id="top" className="relative flex h-[100svh] flex-col justify-center overflow-hidden pt-28">
                     <div className="pointer-events-none absolute inset-0 -z-10">
                         <div
                             className="absolute -inset-10 opacity-[0.22] blur-2xl"
@@ -1786,10 +1809,13 @@ export default function App() {
 
                         <div className="mt-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div className="flex flex-wrap gap-3">
-                                <PrimaryButton href="#playground">
-                                    <Zap className="h-4 w-4" />
-                                    What I actually do
-                                </PrimaryButton>
+                                {!isMobile ? (
+                                    <PrimaryButton href="#playground">
+                                        <Zap className="h-4 w-4" />
+                                        What I actually do
+                                    </PrimaryButton>
+                                ) : null}
+
                                 <SecondaryButton href="#reels">
                                     <Sparkles className="h-4 w-4" />
                                     Demo reels
@@ -1814,7 +1840,7 @@ export default function App() {
                     </div>
                 </section>
 
-                <section id="reels" className="relative h-[100svh] overflow-hidden snap-start [scroll-snap-stop:always] pb-10 pt-28">
+                <section id="reels" className="relative h-[100svh] overflow-hidden pb-10 pt-28">
                     <div className="pointer-events-none absolute inset-0 -z-10">
                         <div
                             className="absolute -inset-14 opacity-[0.18] blur-2xl"
@@ -1870,14 +1896,16 @@ export default function App() {
                     </div>
                 </section>
 
-                <Section
-                    id="playground"
-                    title="What I actually do"
-                    icon={<SlidersHorizontal className="h-4 w-4" />}
-                    subtitle="Compare the exact same level with feel tuning ON vs OFF to feel the difference."
-                >
-                    <ThreeCPlayground />
-                </Section>
+                {!isMobile ? (
+                    <Section
+                        id="playground"
+                        title="What I actually do"
+                        icon={<SlidersHorizontal className="h-4 w-4" />}
+                        subtitle="Compare the exact same level with feel tuning ON vs OFF to feel the difference."
+                    >
+                        <ThreeCPlayground />
+                    </Section>
+                ) : null}
 
                 <Section id="projects" title="Projects" icon={<Target className="h-4 w-4" />} subtitle="Games that I've been part of">
                     <div className="grid gap-4">
